@@ -105,6 +105,7 @@ for _name in n_dict.keys():
     booksQueue = queue.Queue()
     print(_name)
     for k,v in n_dict[_name].items():
+        _split = v[0].split("/")
         t = Crawler(_split[-1][1:],_split[-2], k)
         t.crawl()
         
