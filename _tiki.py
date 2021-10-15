@@ -55,7 +55,7 @@ class Crawler():
         _concurrent = self._bookshelf()
         print(_concurrent)
         
-        with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()*5) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()*3) as executor:
             executor.map(self._books, _concurrent)
             
     def _books(self, book_tuple):
@@ -97,7 +97,6 @@ class Crawler():
             _res = requests.request("GET", _category_path.format(self.categoryid, _, self.urlkey), headers=headers).json()
             for data in _res['data']:
                 _bookshelf.append( (data['id'],data['seller_product_id']) )
-            break
         
         return _bookshelf
 
