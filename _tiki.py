@@ -44,7 +44,6 @@ for k, v in group_f2.items():
         n_dict[k][stype] = group_f1[stype]
 
 _big_dict = {}
-# booksQueue = queue.Queue()
 
 class Crawler():
     def __init__(self, categoryid, urlkey, cname):
@@ -106,12 +105,11 @@ for _name in n_dict.keys():
     booksQueue = queue.Queue()
     print(_name)
     for k,v in n_dict[_name].items():
-        _split = v.split("/")
         t = Crawler(_split[-1][1:],_split[-2], k)
         t.crawl()
         
-        df = pd.DataFrame(columns=['Tên Sách', 'Ảnh bìa','Thể loại','Tác giả','Nội dung tóm tắt','Giá bìa']+ list(_big_dict.keys()),index=[0])
-        while not booksQueue.empty():
-            df = df.append(booksQueue.get(),ignore_index=True)
-                           
-        df.to_csv('tiki_'+ _name+'.csv')
+    df = pd.DataFrame(columns=['Tên Sách', 'Ảnh bìa','Thể loại','Tác giả','Nội dung tóm tắt','Giá bìa']+ list(_big_dict.keys()),index=[0])
+    while not booksQueue.empty():
+        df = df.append(booksQueue.get(),ignore_index=True)
+                       
+    df.to_csv('tiki_'+ _name+'.csv')
