@@ -53,9 +53,8 @@ class Crawler():
         
     def crawl(self):
         _concurrent = self._bookshelf()
-        print(_concurrent)
         
-        with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()*3) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()*5) as executor:
             executor.map(self._books, _concurrent)
             
     def _books(self, book_tuple):
@@ -63,22 +62,23 @@ class Crawler():
         book = {}
         
         __res =  requests.request("GET",_book_detail.format(book_tuple[0],book_tuple[1]), headers=headers).json()
+        book['path'] = __res['url_path']
         book['Tên Sách'] = __res['name']
         book['Ảnh bìa'] = __res['thumbnail_url']
         for _spec in __res['specifications'][0]['attributes']:
-            book[_spec['name']] = _spec['value']
+            _value = _spec['value']
+            if '<p>' in _spec['value']:
+                book[_spec['name']] = re.sub('<[^<]+?>', '', _value)
+            else :
+                book[_spec['name']] = _value
             
             _big_dict[_spec['name']] = ''
-#         book['Nhà phát hành'] = __res['specifications'][0]['attributes'][0]["value"]
-#         book['Nhà xuất bản'] = __res['specifications'][0]['attributes'][-1]["value"]
-#         book['Dịch Giả'] = __res['specifications'][0]['attributes'][3]["value"]
-#         book['Số trang'] = __res['specifications'][0]['attributes'][3]["value"]
-#         book['Ngày xuất bản'] = __res['specifications'][0]['attributes'][1]["value"]
-        
-        book['Tác giả'] = ','.join([author['name'] for author in __res['authors']])
+        if 'authors' in __res:
+            book['Tác giả'] = ','.join([author['name'] for author in __res['authors']])
+        else:
+            book['Tác giả'] = ''
         book['Thể loại'] = self.category_name
         book['Giá bìa'] = __res['price']
-#         book['Nội dung tóm tắt'] = __res['short_description']
         book['Nội dung tóm tắt'] = unicodedata.normalize("NFKD",__res['short_description'])
         
         booksQueue.put(book)
@@ -89,10 +89,11 @@ class Crawler():
     def _bookshelf(self):
         
         _bookshelf = []
-        _res = requests.request("GET", _category_path.format(self.categoryid, 0, self.urlkey), headers=headers).json()
+        _res = requests.request("GET", _category_path.format(self.categoryid, 1, self.urlkey), headers=headers).json()
         _total = _res['paging']['last_page']+1
         
         for _ in range(_total):
+            _ +=1
             print(f"total page of {self.urlkey} : {_total}")
             _res = requests.request("GET", _category_path.format(self.categoryid, _, self.urlkey), headers=headers).json()
             for data in _res['data']:
@@ -100,16 +101,16 @@ class Crawler():
         
         return _bookshelf
 
+
 for _name in n_dict.keys():
     booksQueue = queue.Queue()
-    print(_name)
     for k,v in n_dict[_name].items():
         _split = v[0].split("/")
         t = Crawler(_split[-1][1:],_split[-2], k)
-        t.crawl()
-        
-    df = pd.DataFrame(columns=['Tên Sách', 'Ảnh bìa','Thể loại','Tác giả','Nội dung tóm tắt','Giá bìa']+ list(_big_dict.keys()),index=[0])
+    
+    df = pd.DataFrame(columns=['Tên Sách', 'Ảnh bìa','Thể loại','Tác giả','Nội dung tóm tắt','Giá bìa','Công ty phát hành','Nhà xuất bản','Ngày xuất bản','Kích thước',
+                               'Loại bìa','Số trang','Dịch Giả',],index=[0])
     while not booksQueue.empty():
         df = df.append(booksQueue.get(),ignore_index=True)
-                       
+
     df.to_csv('tiki_'+ _name+'.csv')
