@@ -28,7 +28,6 @@ headers = {
   'accept-language': 'vi,en-US;q=0.9,en;q=0.8,vi-VN;q=0.7'
 }
 
-
 df2 = pd.read_csv("DATA_v2.csv")
 df2.dropna(inplace = True) 
 df2.columns = ["Thể loại", "Nguồn nhập", "type"]
@@ -103,10 +102,12 @@ class Crawler():
 
 
 for _name in n_dict.keys():
+    print(_name)
     booksQueue = queue.Queue()
     for k,v in n_dict[_name].items():
         _split = v[0].split("/")
         t = Crawler(_split[-1][1:],_split[-2], k)
+        t.crawl()
     
     df = pd.DataFrame(columns=['Tên Sách', 'Ảnh bìa','Thể loại','Tác giả','Nội dung tóm tắt','Giá bìa','Công ty phát hành','Nhà xuất bản','Ngày xuất bản','Kích thước',
                                'Loại bìa','Số trang','Dịch Giả',],index=[0])
@@ -114,3 +115,4 @@ for _name in n_dict.keys():
         df = df.append(booksQueue.get(),ignore_index=True)
 
     df.to_csv('tiki_'+ _name+'.csv')
+
