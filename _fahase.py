@@ -18,6 +18,11 @@ df2.dropna(inplace = True)
 df2.columns = ["Thể loại", "Nguồn nhập", "type"]
 
 # Remove all row that not have fahasa
+df2 = pd.read_csv("DATA_v2.csv")
+df2.dropna(inplace = True) 
+df2.columns = ["Thể loại", "Nguồn nhập", "type"]
+
+# Remove all row that not have fahasa
 df2 = df2[df2['Nguồn nhập'].str.contains("fahasa")]
 group_f1 = df2.groupby("Thể loại")["Nguồn nhập"].apply(list).to_dict()
 group_f2 = df2.groupby("type")["Thể loại"].apply(list).to_dict()
@@ -25,10 +30,16 @@ group_f2 = df2.groupby("type")["Thể loại"].apply(list).to_dict()
 n_dict = defaultdict(dict)
 for k, v in group_f2.items():
     for stype in v:
-        if "order=num_orders" in group_f1[stype][0]:
-            group_f1[stype] = group_f1[stype][0].split('?')[0] + '?order=num_orders&limit={}&p={}'
+        if type(group_f1[stype]) == list:
+            _url = group_f1[stype][0]
         else:
-            group_f1[stype] = group_f1[stype][0] + '?order=num_orders&limit={}&p={}'
+            _url = group_f1[stype]
+            
+        if "order=num_orders" not in _url:
+            print(group_f1[stype])
+            group_f1[stype] = _url + '?order=num_orders&limit={}&p={}'
+        else:
+            group_f1[stype] = _url.split('?')[0] + '?order=num_orders&limit={}&p={}'
         n_dict[k][stype] = group_f1[stype]
 
 payload={}
@@ -48,7 +59,7 @@ headers = {
   'sec-fetch-dest': 'document',
 #   'referer': 'https://www.fahasa.com/sach-trong-nuoc/nuoi-day-con/cam-nang-lam-cha-me.html?order=num_orders&limit=24&p=1',
   'accept-language': 'vi,en-US;q=0.9,en;q=0.8,vi-VN;q=0.7',
-  'cookie': 'ves_added_cart=0; BPC2=3cbffa1450b1aded354162650c95a09d; BPC2Referrer=; frontend=3ab9107c80124012800d60083add108f; _gcl_au=1.1.11214569.1634812990; _gid=GA1.2.1340139973.1634812991;'
+  'cookie': 'BPC2=291be300fef9c427de4cb5d4c311f24a; BPC2Referrer=;'
 }
 
 class Crawler():
