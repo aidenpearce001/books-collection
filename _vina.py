@@ -49,8 +49,6 @@ headers = {
   'accept-language': 'vi,en-US;q=0.9,en;q=0.8,vi-VN;q=0.7',
 }
 
-response = requests.request("GET", url, headers=headers, data=payload)
-
 booksQueue = queue.Queue()
 
 class Crawler():
@@ -119,4 +117,4 @@ for _name in n_dict.keys():
     while not booksQueue.empty():
         df = df.append(booksQueue.get(),ignore_index=True)
 
-    df.to_csv('vina/fahasa_'+ _name+'.csv')
+    df.to_csv('vina/vina_'+ _name+'.csv')
