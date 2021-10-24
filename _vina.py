@@ -11,6 +11,9 @@ import lxml
 from collections import defaultdict
 import unicodedata
 
+__name = pd.read_csv("allocate/VĂN HỌC.csv")
+__name.columns
+
 df2 = pd.read_csv("DATA_v2.csv")
 df2.dropna(inplace = True) 
 df2.columns = ["Thể loại", "Nguồn nhập", "type"]
@@ -58,11 +61,9 @@ class Crawler():
         
     def crawl(self):
         _concurrent = self._bookshelf()
-        
-        print(_concurrent)
-        
-        with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()*3) as executor:
-            executor.map(self._books, _concurrent)
+        if _concurrent != None:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()*3) as executor:
+                executor.map(self._books, _concurrent)
             
     def _books(self, _url,):
         
@@ -92,23 +93,26 @@ class Crawler():
         print(self.url.format(48, 1))
         _res = requests.request("GET", self.url.format(1), headers=headers)
         soup = BeautifulSoup(_res.text, "html.parser")
-        _pages = int(soup.find("span",{"class":"group-paging-label"}).text.split("/")[1]) + 1
         
-        for _ in range(_pages):
-            _ =+1
-#             print(f"total page of {self.urlkey} : {_total}")
-            _res = requests.request("GET", self.url.format(_), headers=headers)
-            soup = BeautifulSoup(_res.text, "html.parser")
-            for _ in soup.findAll("p",{"class":"price-info-nd"}):
-                _bookshelf.append(_.a['href'].rstrip())
-            
-        return _bookshelf
+        _paging = soup.find("span",{"class":"group-paging-label"})
+        if _paging:
+            _pages = int(_paging.text.split("/")[1]) + 1
 
+            for _ in range(_pages):
+                _ =+1
+                _res = requests.request("GET", self.url.format(_), headers=headers)
+                soup = BeautifulSoup(_res.text, "html.parser")
+                for _ in soup.findAll("p",{"class":"price-info-nd"}):
+                    _bookshelf.append(_.a['href'].rstrip())
 
+            return _bookshelf
+        else:
+            return None
+
+total = 0
 for _name in n_dict.keys():
     booksQueue = queue.Queue()
     for k,v in n_dict[_name].items():
-        print(v)
         t = Crawler(v, k)
         t.crawl()
 
