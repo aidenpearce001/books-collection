@@ -85,15 +85,17 @@ class Crawler():
         
         df = pd.read_html(str(table))[0]
         
-        book['tên dách'] = re.sub("(?m)^\s+","", _soup.h1.text.rstrip())
+        book['tên sách'] = re.sub("(?m)^\s+","", _soup.h1.text.rstrip())
         book['ảnh bìa'] = _soup.find("div",{"class":"product-view-image-product"}).img['src']
         book['thể loại'] = self.category_name
         book['tác giả'] = df[1][3]
         
         book['nội dung tóm tắt'] = _soup.find("div",{"id":"desc_content"}).text
         book['giá bìa'] = unicodedata.normalize("NFKD",_soup.findAll("span",{"class":"price"})[-1].text)
-        
-        
+        book['path'] = _url
+
+
+        print(book)
         booksQueue.put(book)
         print(f"Number of products in my pocket {booksQueue.qsize()}")
         
