@@ -88,7 +88,12 @@ class Crawler():
         book['tên sách'] = re.sub("(?m)^\s+","", _soup.h1.text.rstrip())
         book['ảnh bìa'] = _soup.find("div",{"class":"product-view-image-product"}).img['src']
         book['thể loại'] = self.category_name
-        book['tác giả'] = df[1][3]
+        book['tác giả'] = df[1][df.index[df[0].str.contains("Tác giả")].to_list()[0]]
+        book['nhà xuất bản'] = df[1][df.index[df[0].str.contains("NXB")].to_list()[0]]
+        book['ngày xuất bản'] = df[1][df.index[df[0].str.contains("Năm XB")].to_list()[0]]
+        book['kích thước'] = df[1][df.index[df[0].str.contains("Kích Thước Bao Bì")].to_list()[0]]
+        book['số trang'] = df[1][df.index[df[0].str.contains("Số trang")].to_list()[0]]
+        book['loại bìa'] = df[1][df.index[df[0].str.contains("Hình thức")].to_list()[0]]
         
         book['nội dung tóm tắt'] = _soup.find("div",{"id":"desc_content"}).text
         book['giá bìa'] = unicodedata.normalize("NFKD",_soup.findAll("span",{"class":"price"})[-1].text)
@@ -124,6 +129,7 @@ class Crawler():
 
 booksQueue = queue.Queue()
 
+total = 0
 for _name in n_dict.keys():
     booksQueue = queue.Queue()
     for k,v in n_dict[_name].items():
