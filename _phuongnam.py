@@ -8,8 +8,9 @@ import os
 from bs4 import BeautifulSoup
 import lxml
 
-from collections import defaultdict
+from collections import defaultdict, deque
 import unicodedata
+import pickle
 
 df2 = pd.read_csv("DATA_v2.csv")
 df2.dropna(inplace = True) 
@@ -50,6 +51,7 @@ headers = {
   'Cookie': 'sid_customer_d577e=c81a4f54e12eb374c53db1cf4d78f94e-C'
 }
 
+_book = ['tên sách','ảnh bìa','thể loại','nội dung tóm tắt','giá bìa']
 _big_dict = {}
 booksQueue = queue.Queue()
 
@@ -61,7 +63,7 @@ class _phuongnam_Crawler():
     def crawl(self):
         _concurrent = self._bookshelf()
         
-        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()*5) as executor:
             executor.map(self._books, _concurrent)
     
     def _books(self, book_url):
@@ -86,7 +88,7 @@ class _phuongnam_Crawler():
             book[_info[0]] = _info[1]
         book['giá bìa'] = soup.find('span',{'class':'ty-price-num'}).text
         
-        print(book)
+        # print(book)
         
         booksQueue.put(book)
             
@@ -113,24 +115,30 @@ class _phuongnam_Crawler():
             pages +=1
         return _bookshelf
 
-
 total = 0 
 rename_dict = defaultdict()
 
 for _name in n_dict.keys():
-    booksQueue = queue.Queue()
-    for k,v in n_dict[_name].items():
-        print(v)
-        t = _phuongnam_Crawler(v, k)
-        t.crawl()
-        
-    for i in sorted(_big_dict.keys()):
-        rename_dict[i] = i.lstrip().lower()
+	booksQueue = queue.Queue()
+	for k,v in n_dict[_name].items():
+		print(v)
+		t = _phuongnam_Crawler(v, k)
+		t.crawl()
 
-    total += booksQueue.qsize()
-    df = pd.DataFrame()
-    while not booksQueue.empty():
-        df = df.append(booksQueue.get(),ignore_index=True)
-        df.rename(columns=rename_dict ,inplace=True)
-    df.to_csv('phuongnam/phuongnam_'+ _name+'.csv',index=False)
+	for i in sorted(_big_dict.keys()):
+		rename_dict[i] = i.lstrip().lower()
+
+	total += booksQueue.qsize()
+	_dict = {}
+	df = pd.DataFrame(columns=_book+list(rename_dict.keys()))
+
+	while not booksQueue.empty():
+		df = df.append(booksQueue.get(),ignore_index=True)
+	# _dict = {**_dict, **booksQueue.get()}
+	# _dict.update(booksQueue.get())
+
+	print(_dict)
+	# df = pd.DataFrame.from_dict(_dict.items(), columns= _dict.keys())
+	df.rename(columns=rename_dict ,inplace=True)
+	df.to_csv('phuongnam/phuongnam_'+ _name+'.csv',index=False)
 print(f"total : {total}")
