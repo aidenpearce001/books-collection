@@ -12,20 +12,23 @@ import unicodedata
 _category_path = "https://tiki.vn/api/personalish/v1/blocks/listings?limit=100&include=advertisement&aggregations=1&category={}&page={}&urlKey={}"
 _book_detail = 'https://tiki.vn/api/v2/products/{}?platform=web&spid={}'
 
+__name = pd.read_csv("CHĂM SÓC GIA ĐÌNH.csv")
+__name.columns
+
 payload={}
 headers = {
-  'authority': 'tiki.vn',
-  'pragma': 'no-cache',
-  'cache-control': 'no-cache',
-  'sec-ch-ua': '"Chromium";v="94", "Google Chrome";v="94", ";Not A Brand";v="99"',
-  'accept': 'application/json, text/plain, */*',
-  'sec-ch-ua-mobile': '?0',
-  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.71 Safari/537.36',
-  'sec-ch-ua-platform': '"Windows"',
-  'sec-fetch-site': 'same-origin',
-  'sec-fetch-mode': 'cors',
-  'sec-fetch-dest': 'empty',
-  'accept-language': 'vi,en-US;q=0.9,en;q=0.8,vi-VN;q=0.7'
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:93.0) Gecko/20100101 Firefox/93.0',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.5',
+  'Connection': 'keep-alive',
+  'Cookie': '_trackity=1082ef4b-85f0-5a23-bda4-d0f85ca59eb4; TOKENS={%22access_token%22:%22UrzZ4hO8H7mnY5MNlw3QCyqDP9VSAjxe%22%2C%22expires_in%22:157680000%2C%22expires_at%22:1793091946598%2C%22guest_token%22:%22UrzZ4hO8H7mnY5MNlw3QCyqDP9VSAjxe%22}; delivery_zone=Vk4wMzQwMjkwMTE=; _gcl_au=1.1.148276762.1635411962; amp_99d374=-hnSJN7KLOKBaRmwRzDaXK...1fj32cb00.1fj33ak5c.2.4.6; _ga=GA1.1.1599687975.1635411964; _gid=GA1.2.1838217135.1635411964; _fbp=fb.1.1635411969911.1818135830; _ga_GSD4ETCY1D=GS1.1.1635411970.1.1.1635412978.0; tiki_client_id=1599687975.1635411964; _hjid=4422e7ba-26a3-4813-87e3-d461db045594; _hjIncludedInSessionSample=0; cto_bundle=X6p7gV91T3B4eVJOTnlDdjlaa0EzQmJKdmlxeFMlMkJnWVZ3OWg2cHhhdW1Cc3ZicXNYWUtaRDVmcTE1MnJIaFBhYjFvRHN2cnRuTDhsUzN1RzgxTmtBanklMkZlRTQ1SmZaWlRVWnlrWVFTckQlMkZUcEVkNzdGZGNoS2JmUEJGQzElMkJUaEpOa1clMkI; __iid=749; __iid=749; __su=0; __su=0',
+  'Upgrade-Insecure-Requests': '1',
+  'Sec-Fetch-Dest': 'document',
+  'Sec-Fetch-Mode': 'navigate',
+  'Sec-Fetch-Site': 'none',
+  'Sec-Fetch-User': '?1',
+  'Pragma': 'no-cache',
+  'Cache-Control': 'no-cache'
 }
 
 df2 = pd.read_csv("DATA_v2.csv")
@@ -40,8 +43,11 @@ group_f2 = df2.groupby("type")["Thể loại"].apply(list).to_dict()
 n_dict = defaultdict(dict)
 for k, v in group_f2.items():
     for stype in v:
-        n_dict[k][stype] = group_f1[stype]
-
+        if (len(group_f1[stype])) == 1:
+            n_dict[k][stype] = group_f1[stype][0]
+        else:
+            for _ in group_f1[stype]:
+                n_dict[k][stype] = _
 _big_dict = {}
 
 class Crawler():
@@ -53,7 +59,7 @@ class Crawler():
     def crawl(self):
         _concurrent = self._bookshelf()
         
-        with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()*5) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
             executor.map(self._books, _concurrent)
             
     def _books(self, book_tuple):
@@ -80,6 +86,7 @@ class Crawler():
         book['Giá bìa'] = __res['price']
         book['Nội dung tóm tắt'] = unicodedata.normalize("NFKD",__res['short_description'])
         
+        print(book)
         booksQueue.put(book)
             
         print(f"Number of products in my pocket {booksQueue.qsize()}")
@@ -100,19 +107,22 @@ class Crawler():
         
         return _bookshelf
 
+total = 0
 
 for _name in n_dict.keys():
-    print(_name)
     booksQueue = queue.Queue()
     for k,v in n_dict[_name].items():
-        _split = v[0].split("/")
+        print(v)
+        _split = v.split("/")
         t = Crawler(_split[-1][1:],_split[-2], k)
         t.crawl()
     
+    total += booksQueue.qsize()
     df = pd.DataFrame(columns=['Tên Sách', 'Ảnh bìa','Thể loại','Tác giả','Nội dung tóm tắt','Giá bìa','Công ty phát hành','Nhà xuất bản','Ngày xuất bản','Kích thước',
                                'Loại bìa','Số trang','Dịch Giả',],index=[0])
     while not booksQueue.empty():
         df = df.append(booksQueue.get(),ignore_index=True)
 
-    df.to_csv('tiki_'+ _name+'.csv')
+    df.to_csv('tiki/tiki_'+ _name+'.csv',index=False)
 
+print(f"total: ",total)
