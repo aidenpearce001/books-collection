@@ -10,7 +10,13 @@ import lxml
 
 from collections import defaultdict, deque
 import unicodedata
-import pickle
+import logging
+
+logging.basicConfig(filename='phuongnam_logger.log',
+    filemode='w',
+    format='[%(filename)s:%(lineno)s - %(funcName)20s() ] [%(levelname)s] : [%(message)s]',
+    datefmt='%H:%M:%S')
+
 
 df2 = pd.read_csv("DATA_v2.csv")
 df2.dropna(inplace = True) 
@@ -48,7 +54,6 @@ headers = {
   'Sec-Fetch-Mode': 'cors',
   'Sec-Fetch-Dest': 'empty',
   'Accept-Language': 'vi,en-US;q=0.9,en;q=0.8,vi-VN;q=0.7',
-  'Cookie': 'sid_customer_d577e=c81a4f54e12eb374c53db1cf4d78f94e-C'
 }
 
 _book = ['tên sách','ảnh bìa','thể loại','nội dung tóm tắt','giá bìa']
@@ -62,9 +67,19 @@ class _phuongnam_Crawler():
         
     def crawl(self):
         _concurrent = self._bookshelf()
-        
-        with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()*5) as executor:
-            executor.map(self._books, _concurrent)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            # executor.map(self._books, _concurrent)
+            results = list(map(lambda x: executor.submit(self._books, x), _concurrent))
+            for future in concurrent.futures.as_completed(results):
+                logging.info('================================')
+                try:
+                    print('resutl is', future.result())
+                    booksQueue.put(future.result())
+                    logging.info('crawl done')
+                except Exception as e:
+                    print('e is', e, type(e))
+                    logging.error(e, exc_info=True)
     
     def _books(self, book_url):
         
@@ -88,16 +103,16 @@ class _phuongnam_Crawler():
             book[_info[0]] = _info[1]
         book['giá bìa'] = soup.find('span',{'class':'ty-price-num'}).text
         
-        # print(book)
-        
-        booksQueue.put(book)
+        # booksQueue.put(book)
             
         print(f"Number of products in my pocket {booksQueue.qsize()}")
+
+        return book
         
     def _bookshelf(self):
         _bookshelf = []
         
-        pages=0
+        pages=1
         while True:
             print(f"Crawling pages {pages} of {self.category}")
             response = requests.request("GET", self.url.format(pages), headers=headers, verify=False).json()
